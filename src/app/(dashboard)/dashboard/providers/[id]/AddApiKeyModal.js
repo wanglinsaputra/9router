@@ -142,7 +142,16 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
         const res = await fetch("/api/providers", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider, apiKey, name, priority: 1, testStatus: "unknown" }),
+          body: JSON.stringify({
+            provider,
+            apiKey,
+            name,
+            priority: formData.priority || 1,
+            testStatus: "unknown",
+            defaultModel: isCompatible ? formData.defaultModel.trim() : undefined,
+            providerSpecificData: buildProviderSpecificData(),
+            proxyPoolId: formData.proxyPoolId === NONE_PROXY_POOL_VALUE ? null : formData.proxyPoolId,
+          }),
         });
         if (res.ok) success++;
         else failed++;
@@ -180,12 +189,6 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
                 ✓ {bulkResult.success} added{bulkResult.failed > 0 ? `, ✗ ${bulkResult.failed} failed` : ""}
               </div>
             )}
-            <div className="flex gap-2">
-              <Button onClick={handleBulkSubmit} fullWidth disabled={saving || !bulkText.trim()}>
-                {saving ? "Adding..." : "Add All Keys"}
-              </Button>
-              <Button onClick={onClose} variant="ghost" fullWidth>Cancel</Button>
-            </div>
           </div>
         )}
 
@@ -247,6 +250,7 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
             )}
           </p>
         )}
+        </>)}
         {providerRegions && (
           <Select
             label="Region"
@@ -355,15 +359,27 @@ export default function AddApiKeyModal({ isOpen, provider, providerName, isCompa
           Legacy manual proxy fields are still accepted by API for backward compatibility.
         </p>
 
-        <div className="flex gap-2">
-          <Button onClick={handleSubmit} fullWidth disabled={saving || (!isOllamaLocal && (!formData.name || !formData.apiKey)) || (isCompatible && !formData.defaultModel.trim()) || (isAzure && (!azureData.azureEndpoint || !azureData.deployment || !azureData.organization)) || (isCloudflareAi && !cloudflareData.accountId)}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-          <Button onClick={onClose} variant="ghost" fullWidth>
-            Cancel
-          </Button>
-        </div>
-        </>)}
+        {mode === "single" && (
+          <div className="flex gap-2">
+            <Button onClick={handleSubmit} fullWidth disabled={saving || (!isOllamaLocal && (!formData.name || !formData.apiKey)) || (isCompatible && !formData.defaultModel.trim()) || (isAzure && (!azureData.azureEndpoint || !azureData.deployment || !azureData.organization)) || (isCloudflareAi && !cloudflareData.accountId)}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+            <Button onClick={onClose} variant="ghost" fullWidth>
+              Cancel
+            </Button>
+          </div>
+        )}
+        
+        {mode === "bulk" && (
+          <div className="flex gap-2">
+            <Button onClick={handleBulkSubmit} fullWidth disabled={saving || !bulkText.trim() || (isCompatible && !formData.defaultModel.trim()) || (isAzure && (!azureData.azureEndpoint || !azureData.deployment || !azureData.organization)) || (isCloudflareAi && !cloudflareData.accountId)}>
+              {saving ? "Adding..." : "Add All Keys"}
+            </Button>
+            <Button onClick={onClose} variant="ghost" fullWidth>
+              Cancel
+            </Button>
+          </div>
+        )}
       </div>
     </Modal>
   );
